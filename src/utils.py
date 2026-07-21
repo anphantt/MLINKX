@@ -16,14 +16,10 @@ from collections import Counter, defaultdict
 BANK_ENCODERS = {
     "linkx_bank",
     "cnn_bank",
-    "gnn_bank",
-    "linkx_cnn_bank",
-    "linkx_fused_bank",
-    "node_token_bank",
-    "node_token_linkx_bank",
+    "gnn_bank"
 }
 
-MULTIBAND_ENCODERS = {"linkx_cnn5", "cnn5"}
+MULTIBAND_ENCODERS = {}
 
 def nullable_int(val):
     if val.lower() == "none":
@@ -432,7 +428,7 @@ def make_jsonable(x):
     if isinstance(x, (np.integer, np.floating, np.bool_)):
         return x.item()
     return x
-    
+
 def normalize_summary_row(row):
     """Prepare one summary row for CSV storage."""
     row = make_jsonable(row)

@@ -88,20 +88,6 @@ def train_segment_one_epoch(
 
 
 class EarlyStopping:
-    """
-    Early stopping driven by LOWER validation loss.
-
-    Features:
-    - warmup via start_epoch
-    - min_delta for meaningful improvement
-    - keeps top-k checkpoints with lowest val_loss
-    - exposes selected checkpoint using:
-        1) max val_bal_acc
-        2) max val_macro_f1
-        3) min val_loss
-    - deletes checkpoints that fall out of the top-k set
-    """
-
     def __init__(
         self,
         patience: int,
@@ -146,11 +132,6 @@ class EarlyStopping:
 
     @staticmethod
     def _storage_sort_key(meta: Dict[str, Any]):
-        """
-        How checkpoints are ranked for staying in top-k.
-        Primary goal: lowest validation loss.
-        Ties are broken deterministically.
-        """
         return (
             float(meta["val_loss"]),
             -float(meta["val_bal_acc"]),
@@ -160,12 +141,6 @@ class EarlyStopping:
 
     @staticmethod
     def _selection_sort_key(meta: Dict[str, Any]):
-        """
-        Final checkpoint selection rule requested by user:
-          1) max val_bal_acc
-          2) max val_macro_f1
-          3) min val_loss
-        """
         return (
             -float(meta["val_bal_acc"]),
             -float(meta["val_macro_f1"]),
@@ -212,7 +187,6 @@ class EarlyStopping:
             "val_loss": float(val_loss),
             "val_bal_acc": float(val_bal_acc),
             "val_macro_f1": float(val_macro_f1),
-            # legacy-friendly aliases
             "best_val_loss": float(val_loss),
             "best_val_bal_acc": float(val_bal_acc),
             "best_val_macro_f1": float(val_macro_f1),
@@ -317,16 +291,11 @@ class EarlyStopping:
         val_macro_f1: float,
         extra_state: Optional[Dict[str, Any]] = None,
     ) -> bool:
-        """
-        Returns:
-            True if training should stop, else False
-        """
         val_loss = float(val_loss)
         val_bal_acc = float(val_bal_acc)
         val_macro_f1 = float(val_macro_f1)
         epoch = int(epoch)
 
-        # Always maintain top-k checkpoints
         self._insert_topk(
             model=model,
             optimizer=optimizer,
@@ -372,12 +341,6 @@ class EarlyStopping:
         return self.should_stop
 
     def get_best_checkpoint(self) -> Optional[Dict[str, Any]]:
-        """
-        Select final checkpoint from saved top-k by:
-          1) highest val_bal_acc
-          2) highest val_macro_f1
-          3) lower val_loss
-        """
         if len(self.checkpoints) == 0:
             return None
         best_meta = sorted(self.checkpoints, key=self._selection_sort_key)[0]
@@ -458,8 +421,6 @@ def fit_segment_baseline_subject_es(
             "val_macro_f1": float(val_subject_metrics["macro_f1"]),
         }
 
-        # if residual_stats is not None:
-        #     row.update(residual_stats)
         history.append(row)
 
         if verbose:
@@ -629,13 +590,6 @@ def subject_df_to_metrics(subject_df: pd.DataFrame, num_classes: int) -> Dict[st
 
 
 def _extract_bank_attention_from_output(out):
-    """
-    Return attention tensor from model output.
-
-    Expected shapes:
-      [B, K]    for scalar candidate attention
-      [B, K, D] for dimension-wise attention/gates
-    """
     candidate_keys = [
         "view_attention",
         "candidate_fusion_weights",
@@ -669,7 +623,7 @@ def move_batch_to_device_simple(batch, device):
         else:
             out[k] = v
     return out
-    
+
 @torch.no_grad()
 def collect_bank_attention_segment_level(
     model,
@@ -679,16 +633,6 @@ def collect_bank_attention_segment_level(
     candidate_names=None,
     num_classes=None,
 ):
-    """
-    Collect candidate/topology attention per segment.
-
-    Output:
-      long_df:
-        one row per segment-candidate pair
-
-      summary_df:
-        one row per segment, with entropy/effective-k/max-attention
-    """
     model.eval()
 
     long_rows = []
@@ -801,29 +745,3 @@ def collect_bank_attention_segment_level(
     summary_df = pd.DataFrame(summary_rows)
 
     return long_df, summary_df
-
-
-# def get_bank_residual_stats(model):
-#     enc = getattr(model, "graph_encoder", None)
-#     if enc is None:
-#         return None
-
-#     if not hasattr(enc, "bank_residual_logit"):
-#         return None
-
-#     if enc.bank_residual_logit is None:
-#         return None
-
-#     with torch.no_grad():
-#         logit = enc.bank_residual_logit
-#         gamma_max = getattr(enc, "bank_residual_max", 1.0)
-#         gamma = gamma_max * torch.sigmoid(logit)
-
-#         grad = enc.bank_residual_logit.grad
-#         grad_val = None if grad is None else float(grad.detach().cpu().item())
-
-#         return {
-#             "bank_residual_logit": float(logit.detach().cpu().item()),
-#             "bank_residual_gamma": float(gamma.detach().cpu().item()),
-#             "bank_residual_logit_grad": grad_val,
-#         }

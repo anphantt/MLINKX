@@ -1,0 +1,115 @@
+{
+    "task_name": "CAUEEG-Dementia benchmark",
+    "task_description": "Classification of [Normal], [MCI], and [Dementia] symptoms.",
+    "class_label_to_name": [
+        "Normal",
+        "MCI",
+        "Dementia"
+    ],
+    "class_name_to_label": {
+        "Normal": 0,
+        "MCI": 1,
+        "Dementia": 2
+    },
+    "train_split": [
+        {
+            "serial": "00587",
+            "age": 53,
+            "symptom": [
+                "normal",
+                "cb_normal"
+            ],
+            "class_name": "Normal",
+            "class_label": 0
+        },
+        {
+            "serial": "01301",
+            "age": 88,
+            "symptom": [
+                "dementia",
+                "ad",
+                "load"
+            ],
+            "class_name": "Dementia",
+            "class_label": 2
+        },
+        {
+            "serial": "00781",
+            "age": 68,
+            "symptom": [
+                "mci",
+                "mci_amnestic",
+                "mci_amnestic_rf"
+            ],
+            "class_name": "MCI",
+            "class_label": 1
+        }
+    ],
+    "validation_split": [
+        {
+            "serial": "00341",
+            "age": 80,
+            "symptom": [
+                "dementia",
+                "ad",
+                "load"
+            ],
+            "class_name": "Dementia",
+            "class_label": 2
+        },
+        {
+            "serial": "01021",
+            "age": 77,
+            "symptom": [
+                "mci",
+                "mci_amnestic"
+            ],
+            "class_name": "MCI",
+            "class_label": 1
+        },
+        {
+            "serial": "01094",
+            "age": 86,
+            "symptom": [
+                "normal",
+                "smi"
+            ],
+            "class_name": "Normal",
+            "class_label": 0
+        }
+    ],
+    "test_split": [
+        {
+            "serial": "00008",
+            "age": 66,
+            "symptom": [
+                "normal",
+                "cb_normal"
+            ],
+            "class_name": "Normal",
+            "class_label": 0
+        },
+        {
+            "serial": "00551",
+            "age": 74,
+            "symptom": [
+                "mci",
+                "mci_amnestic",
+                "mci_amnestic_rf"
+            ],
+            "class_name": "MCI",
+            "class_label": 1
+        },
+        {
+            "serial": "01360",
+            "age": 86,
+            "symptom": [
+                "dementia",
+                "vd",
+                "sivd"
+            ],
+            "class_name": "Dementia",
+            "class_label": 2
+        }
+    ]
+}
