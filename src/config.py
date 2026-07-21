@@ -33,7 +33,7 @@ KFOLD = 10
 VAL_RATIO=0.08
 DATASET = "aheap" 
 DIR_DATA = '/mnt/data/anphan/derivatives'
-TSV_PATH = '/home/anphan/Documents/graph/mlinkx/participants.tsv'
+TSV_PATH = '/home/anphan/Documents/graph/mlinkx/data/aheap/participants.tsv'
 # TSV_PATH = '/home/anphan/Documents/EEG_Project/participants.tsv'
 
 
