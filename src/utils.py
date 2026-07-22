@@ -27,6 +27,18 @@ def nullable_int(val):
     return int(val)
 
 
+def as_numpy_float32(x: Any) -> np.ndarray:
+    if isinstance(x, np.ndarray):
+        return x.astype(np.float32, copy=False)
+    if torch.is_tensor(x):
+        return x.detach().cpu().numpy().astype(np.float32, copy=False)
+    return np.asarray(x, dtype=np.float32)
+
+def require_2d_window(window: np.ndarray) -> np.ndarray:
+    arr = as_numpy_float32(window)
+    if arr.ndim != 2:
+        raise ValueError(f"EEG window must have shape [channels, time], got {arr.shape}")
+    return arr
 
 def set_global_seed(seed: int = 42, deterministic: bool = True):
     """

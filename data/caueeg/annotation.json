@@ -1,0 +1,105 @@
+{
+    "dataset_name": "CAUEEG dataset",
+    "signal_header": [
+        "Fp1-AVG",
+        "F3-AVG",
+        "C3-AVG",
+        "P3-AVG",
+        "O1-AVG",
+        "Fp2-AVG",
+        "F4-AVG",
+        "C4-AVG",
+        "P4-AVG",
+        "O2-AVG",
+        "F7-AVG",
+        "T3-AVG",
+        "T5-AVG",
+        "F8-AVG",
+        "T4-AVG",
+        "T6-AVG",
+        "FZ-AVG",
+        "CZ-AVG",
+        "PZ-AVG",
+        "EKG",
+        "Photic"
+    ],
+    "data": [
+        {
+            "serial": "00008",
+            "age": 66,
+            "symptom": [
+                "normal",
+                "cb_normal"
+            ]
+        },
+        {
+            "serial": "00341",
+            "age": 80,
+            "symptom": [
+                "dementia",
+                "ad",
+                "load"
+            ]
+        },
+        {
+            "serial": "00551",
+            "age": 74,
+            "symptom": [
+                "mci",
+                "mci_amnestic",
+                "mci_amnestic_rf"
+            ]
+        },
+        {
+            "serial": "00587",
+            "age": 53,
+            "symptom": [
+                "normal",
+                "cb_normal"
+            ]
+        },
+        {
+            "serial": "00781",
+            "age": 68,
+            "symptom": [
+                "mci",
+                "mci_amnestic",
+                "mci_amnestic_rf"
+            ]
+        },
+        {
+            "serial": "01021",
+            "age": 77,
+            "symptom": [
+                "mci",
+                "mci_amnestic"
+            ]
+        },
+        {
+            "serial": "01094",
+            "age": 86,
+            "symptom": [
+                "normal",
+                "smi"
+            ]
+        },
+        {
+            "serial": "01301",
+            "age": 88,
+            "symptom": [
+                "dementia",
+                "ad",
+                "load"
+            ]
+        },
+        {
+            "serial": "01360",
+            "age": 86,
+            "symptom": [
+                "dementia",
+                "vd",
+                "sivd"
+            ]
+        }
+    ]
+}

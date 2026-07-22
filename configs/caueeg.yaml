@@ -1,7 +1,7 @@
 dataset: caueeg
 
 # Caueeg Raw dataset path
-dataset_path: data/caueeg/dummy_edf
+dataset_path: data/caueeg
 file_format: edf
 
 # Dataset-specific task

@@ -7,6 +7,9 @@ import math
 import os
 import re
 
+import torch
+from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from fractions import Fraction
 from pathlib import Path
@@ -26,11 +29,12 @@ from typing import (
 import h5py
 import mne
 import numpy as np
+import pandas as pd
 import yaml
 
 from scipy import signal
 
-from utils import set_global_seed
+from utils import set_global_seed, require_2d_window, as_numpy_float32
 from config import (
     DEFAULT_BANDS,
     FEATURE_REGISTRY,
@@ -42,6 +46,12 @@ from caueeg.caueeg_script import (
     load_caueeg_task_datasets,
 )
 
+from caueeg.pipeline import (
+    EegRandomCrop,
+    EegDropChannels,
+    EegToTensor,
+    eeg_collate_fn,
+)
 
 
 SRC_DIR = Path(__file__).resolve().parent
@@ -62,6 +72,20 @@ def resolve_project_path(path_value: str | os.PathLike) -> Path:
     return (PROJECT_ROOT / path).resolve()
 
 #--------------COMMON FUNCTIONS-----------------
+
+def build_stats_transform(crop_length: int, latency: int, drop_idx):
+    return transforms.Compose([
+        EegRandomCrop(
+            crop_length=crop_length,
+            length_limit=10**7,
+            multiple=1,
+            latency=latency,
+            segment_simulation=False,
+            return_timing=False,
+        ),
+        EegDropChannels(drop_idx),
+        EegToTensor(),
+    ])
 
 def compute_train_signal_stats(
     dataset_path: str,
@@ -160,12 +184,6 @@ def _normalize_target_sfreq(target_sfreq: Optional[float]) -> Optional[float]:
     return target
 
 
-def _as_numpy_float32(x: Any) -> np.ndarray:
-    if isinstance(x, np.ndarray):
-        return x.astype(np.float32, copy=False)
-    if torch.is_tensor(x):
-        return x.detach().cpu().numpy().astype(np.float32, copy=False)
-    return np.asarray(x, dtype=np.float32)
 
 def _as_jsonable(obj: Any) -> Any:
     if isinstance(obj, (str, int, float, bool)) or obj is None:
@@ -180,14 +198,10 @@ def _as_jsonable(obj: Any) -> Any:
         return obj.detach().cpu().tolist()
     return str(obj)
 
-def _require_2d_window(window: np.ndarray) -> np.ndarray:
-    arr = _as_numpy_float32(window)
-    if arr.ndim != 2:
-        raise ValueError(f"EEG window must have shape [channels, time], got {arr.shape}")
-    return arr
+
 
 def _resample_window(window: np.ndarray, orig_sfreq: float, target_sfreq: Optional[float]) -> np.ndarray:
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     target = _normalize_target_sfreq(target_sfreq)
     orig = float(orig_sfreq)
     if target is None or math.isclose(orig, target, rel_tol=1e-9, abs_tol=1e-9):
@@ -214,6 +228,29 @@ def _window_chunks(shape: Tuple[int, ...]) -> Tuple[int, ...]:
     # Chunk one window at a time to support selective loading.
     return (1,) + tuple(shape[1:])
 
+
+def _to_hdf5_attr_value(value):
+    if value is None:
+        return _json_dumps(None)
+    if isinstance(value, (dict, list, tuple)):
+        return _json_dumps(value)
+    if isinstance(value, np.ndarray):
+        if value.ndim == 0:
+            return _to_hdf5_attr_value(value.item())
+        return _json_dumps(value.tolist())
+    if torch.is_tensor(value):
+        if value.ndim == 0:
+            return _to_hdf5_attr_value(value.item())
+        return _json_dumps(value.detach().cpu().tolist())
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    if isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
 
 def _ensure_window_dataset(
     parent: h5py.Group,
@@ -379,15 +416,15 @@ def build_master_eeg_dataset(
 
             original_sampling_rate = float(subject_record.get("sampling_rate", 500.0))
             stored_sampling_rate = original_sampling_rate if target_sampling_rate is None else float(target_sampling_rate)
-            channel_names = list(subject_record.get("channel_names") or [f"ch_{i}" for i in range(_require_2d_window(source_windows[0]).shape[0])])
+            channel_names = list(subject_record.get("channel_names") or [f"ch_{i}" for i in range(require_2d_window(source_windows[0]).shape[0])])
 
             processed_windows: List[Dict[str, np.ndarray]] = []
             for w in source_windows:
-                qc_window = _require_2d_window(w)
+                qc_window = require_2d_window(w)
                 stored_window = _resample_window(qc_window, original_sampling_rate, stored_sampling_rate)
                 processed_windows.append({"qc_window": qc_window, "stored_window": stored_window})
 
-            first_window = _require_2d_window(processed_windows[0]["stored_window"])
+            first_window = require_2d_window(processed_windows[0]["stored_window"])
             n_channels, n_time = first_window.shape
             n_windows = len(processed_windows)
 
@@ -419,8 +456,8 @@ def build_master_eeg_dataset(
 
             written_idx = 0
             for idx, prepared in enumerate(processed_windows):
-                x = _require_2d_window(prepared["stored_window"])
-                qc_source = _require_2d_window(prepared["qc_window"])
+                x = require_2d_window(prepared["stored_window"])
+                qc_source = require_2d_window(prepared["qc_window"])
                 if x.shape != (n_channels, n_time):
                     raise ValueError(
                         f"Inconsistent stored window shape for subject {subject_record['subject_id']}: expected {(n_channels, n_time)}, got {x.shape}"
@@ -433,7 +470,7 @@ def build_master_eeg_dataset(
                 for family in feature_families:
                     spec = FEATURE_REGISTRY[family]
                     values, meta = spec["fn"](x, stored_sampling_rate, bands)
-                    values = _as_numpy_float32(values)
+                    values = as_numpy_float32(values)
                     ds = _ensure_window_dataset(
                         feat_grp,
                         family,
@@ -450,7 +487,7 @@ def build_master_eeg_dataset(
                 for metric in connectivity_metrics:
                     spec = CONNECTIVITY_REGISTRY[metric]
                     values, meta = spec["fn"](x, stored_sampling_rate, bands)
-                    values = _as_numpy_float32(values)
+                    values = as_numpy_float32(values)
                     shape_desc = ["num_windows"]
                     if values.ndim == 2:
                         shape_desc += ["num_channels", "num_channels"]
@@ -549,7 +586,7 @@ def segment_continuous_eeg(
     -------
     windows, segment_ids, start_samples, end_samples
     """
-    eeg = _require_2d_window(eeg)
+    eeg = require_2d_window(eeg)
 
     if not (0.0 <= float(overlap) < 1.0):
         raise ValueError(f"overlap must be in [0, 1), got {overlap}")
@@ -1044,7 +1081,7 @@ def parse_name_list(value: str | list[str] | None) -> list[str]:
 
 def get_cli_or_config(
     cli_value: Any,
-    config: dict[str, Any],
+    dataset_cfg: dict[str, Any],
     key: str,
     default: Any = None,
 ) -> Any:
@@ -1087,7 +1124,7 @@ def resolve_output_path(
     else:
         # output_root = dataset_cfg.get("output_root")
         output_root = resolve_project_path(
-            dataset_cfg["output_root"]
+            config["output_root"]
         )
 
         if output_root is None:
@@ -1112,6 +1149,27 @@ def resolve_output_path(
     return output_path
 
 
+
+
+def _encode_label_value(
+    label_value: Any,
+    label_to_int: Optional[Mapping[Any, int]] = None,
+) -> int:
+    """
+    Convert a label into an integer class id.
+    """
+    if label_to_int is not None:
+        if label_value not in label_to_int:
+            raise KeyError(f"Label {label_value!r} not found in label_to_int.")
+        return int(label_to_int[label_value])
+
+    if isinstance(label_value, (int, np.integer)):
+        return int(label_value)
+
+    raise ValueError(
+        "Label must already be an integer, or you must provide label_to_int "
+        f"to encode non-integer labels. Got {label_value!r}"
+    )
 
 def load_subject_label_map_from_tsv(
     tsv_path: str | os.PathLike,
@@ -1164,7 +1222,7 @@ def _write_string_dataset(group: h5py.Group, name: str, values: Sequence[str]) -
     arr = np.asarray(list(values), dtype=object)
     if name in group:
         del group[name]
-    group.create_dataset(name, data=arr, dtype=_vlen_str_dtype())
+    group.create_dataset(name, data=arr, dtype=h5py.string_dtype(encoding="utf-8"))
 
 
 # -----------------------------------------------------------------------------
@@ -1561,7 +1619,7 @@ def main() -> None:
 
     if args.dataset == "aheap":
         build_aheap_from_config(
-            config=dataset_cfg,
+            dataset_cfg=dataset_cfg,
             output_h5_path=output_h5_path,
             window_sec=window_sec,
             overlap=overlap,
@@ -1573,7 +1631,7 @@ def main() -> None:
 
     elif args.dataset == "caueeg":
         build_caueeg_from_config(
-            config=dataset_cfg,
+            dataset_cfg=dataset_cfg,
             output_h5_path=output_h5_path,
             window_sec=window_sec,
             overlap=overlap,

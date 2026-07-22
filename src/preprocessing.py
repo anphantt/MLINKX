@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict, List, Mapping, Tuple
 import numpy as np
 from scipy import signal, stats
+from utils import require_2d_window
 # -----------------------------------------------------------------------------
 # Spectral helpers
 # -----------------------------------------------------------------------------
@@ -12,7 +13,7 @@ def _band_mask(freqs: np.ndarray, band: Tuple[float, float]) -> np.ndarray:
     return (freqs >= lo) & (freqs < hi)
 
 def _welch_psd(window: np.ndarray, sfreq: float) -> Tuple[np.ndarray, np.ndarray]:
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     nperseg = min(x.shape[-1], int(sfreq * 2))
     noverlap = nperseg // 2
     freqs, psd = signal.welch(
@@ -74,7 +75,7 @@ def _bandpass_filter(sig_1d: np.ndarray, sfreq: float, band: Tuple[float, float]
 
 
 def _analytic_phase(window: np.ndarray, sfreq: float, band: Tuple[float, float]) -> np.ndarray:
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     phases = np.zeros_like(x, dtype=np.float32)
     for ch in range(x.shape[0]):
         xf = _bandpass_filter(x[ch], sfreq, band)
@@ -116,7 +117,7 @@ def feature_log_band_power(window: np.ndarray, sfreq: float, bands: Mapping[str,
 
 
 def feature_hjorth(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[float, float]]) -> Tuple[np.ndarray, Dict[str, Any]]:
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     dx = np.diff(x, axis=-1)
     ddx = np.diff(dx, axis=-1)
 
@@ -137,7 +138,7 @@ def feature_hjorth(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[f
 
 
 def feature_statistical(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[float, float]]) -> Tuple[np.ndarray, Dict[str, Any]]:
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     mean = np.mean(x, axis=-1)
     std = np.std(x, axis=-1)
     skew = stats.skew(x, axis=-1, bias=False)
@@ -196,7 +197,7 @@ def _higuchi_fd_1d(x: np.ndarray, kmax: int = 8) -> float:
 
 
 def feature_hfd(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[float, float]]) -> Tuple[np.ndarray, Dict[str, Any]]:
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     values = np.array([_higuchi_fd_1d(ch) for ch in x], dtype=np.float32)[:, None]
     return values, {
         "feature_names": ["higuchi_fd"],
@@ -211,7 +212,7 @@ def feature_wavelet_energy(window: np.ndarray, sfreq: float, bands: Mapping[str,
     except ImportError as exc:
         raise ImportError("wavelet features require PyWavelets (pywt). Install it or remove 'wavelet_energy'.") from exc
 
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     level = 5
     values = []
     for ch in x:
@@ -238,7 +239,7 @@ def _symmetrize(mat: np.ndarray) -> np.ndarray:
 
 
 def conn_pearson(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[float, float]]) -> Tuple[np.ndarray, Dict[str, Any]]:
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     mat = np.corrcoef(x)
     mat = np.nan_to_num(mat, nan=0.0, posinf=0.0, neginf=0.0)
     return _symmetrize(mat), {"description": "Pearson correlation connectivity.", "band_names": None}
@@ -246,7 +247,7 @@ def conn_pearson(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[flo
 
 
 def conn_spearman(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[float, float]]) -> Tuple[np.ndarray, Dict[str, Any]]:
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     ranks = np.apply_along_axis(stats.rankdata, 1, x)
     mat = np.corrcoef(ranks)
     mat = np.nan_to_num(mat, nan=0.0, posinf=0.0, neginf=0.0)
@@ -255,7 +256,7 @@ def conn_spearman(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[fl
 
 
 def conn_coherence(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[float, float]]) -> Tuple[np.ndarray, Dict[str, Any]]:
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     band_names = list(bands.keys())
     n_channels = x.shape[0]
     out = np.zeros((len(band_names), n_channels, n_channels), dtype=np.float32)
@@ -280,7 +281,7 @@ def _phase_connectivity(
     bands: Mapping[str, Tuple[float, float]],
     mode: str,
 ) -> Tuple[np.ndarray, Dict[str, Any]]:
-    x = _require_2d_window(window)
+    x = require_2d_window(window)
     band_names = list(bands.keys())
     n_channels = x.shape[0]
     out = np.zeros((len(band_names), n_channels, n_channels), dtype=np.float32)
