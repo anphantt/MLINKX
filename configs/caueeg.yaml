@@ -1,0 +1,40 @@
+dataset: caueeg
+
+# Caueeg Raw dataset path
+dataset_path: data/caueeg/dummy_edf
+file_format: edf
+
+# Dataset-specific task
+task: dementia-no-overlap
+
+# Sampling information
+source_sampling_rate: 200
+target_sampling_rate: 200
+
+# Default segmentation settings.
+# crop_length is derived as:
+# window_sec * source_sampling_rate
+window_sec: 4.0
+overlap: 0.5
+
+# Skip the first 10 seconds of each recording.
+# latency is derived as:
+# latency_sec * source_sampling_rate
+latency_sec: 10.0
+
+feature_families:
+  - relative_band_power
+  - statistical
+
+connectivity_metrics:
+  - coherence
+  - wpli
+
+# Optional previously calculated normalization statistics.
+norm_stats_npz: null
+
+overwrite: false
+seed: 42
+
+# Used when --output is not provided.
+output_root: data/caueeg/h5

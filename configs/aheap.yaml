@@ -1,0 +1,43 @@
+dataset: aheap
+
+# Raw data and metadata
+derivatives_root: data/aheap/derivatives
+participants_tsv: data/aheap/participants.tsv
+file_pattern: "sub-*/eeg/*.set"
+
+# Metadata columns
+subject_col: participant_id
+label_col: Group
+separator: "\t"
+
+label_to_int:
+  C: 0
+  A: 1
+  F: 2
+
+# Sampling information
+source_sampling_rate: 500
+target_sampling_rate: 500
+
+# Default segmentation settings.
+# Command-line arguments can override these values.
+window_sec: 4.0
+overlap: 0.5
+
+# Names must exactly match FEATURE_REGISTRY keys.
+feature_families:
+  - relative_band_power
+  - statistical
+
+# Names must exactly match CONNECTIVITY_REGISTRY keys.
+connectivity_metrics:
+  - coherence
+  - wpli
+
+# Set this to a mapping if channel names must be standardized.
+rename_channels: null
+overwrite: false
+seed: 42
+
+# Used when --output is not provided.
+output_root: data/aheap/h5
