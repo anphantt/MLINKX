@@ -3,7 +3,7 @@ import os
 from typing import Any, Dict, List, Mapping, Tuple
 import numpy as np
 from scipy import signal, stats
-from utils import require_2d_window
+from .utils import require_2d_window
 # -----------------------------------------------------------------------------
 # Spectral helpers
 # -----------------------------------------------------------------------------

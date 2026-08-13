@@ -34,19 +34,19 @@ import yaml
 
 from scipy import signal
 
-from utils import set_global_seed, require_2d_window, as_numpy_float32
-from config import (
+from .utils import set_global_seed, require_2d_window, as_numpy_float32
+from .config import (
     DEFAULT_BANDS,
     FEATURE_REGISTRY,
     CONNECTIVITY_REGISTRY,
 )
 
-from caueeg.caueeg_script import (
+from .caueeg.caueeg_script import (
     load_caueeg_config,
     load_caueeg_task_datasets,
 )
 
-from caueeg.pipeline import (
+from .caueeg.pipeline import (
     EegRandomCrop,
     EegDropChannels,
     EegToTensor,

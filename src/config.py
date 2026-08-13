@@ -1,5 +1,5 @@
 from typing import Any, Dict, Tuple
-from preprocessing import (
+from .preprocessing import (
     feature_relative_band_power,
     feature_hjorth,
     feature_statistical,

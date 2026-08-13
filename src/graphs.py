@@ -699,80 +699,80 @@ def build_graph_bank_from_specs(
     return base_graphs, candidate_names
 
 
-class SubjectBalancedSegmentKDataset(Dataset):
-    def __init__(
-        self,
-        graphs: Sequence[Data],
-        k: int,
-        seed: int = 42,
-        fill_with_replacement: bool = True,
-        sort_graphs_by: str = "segment_id",
-    ):
-        if k is None or int(k) <= 0:
-            raise ValueError(f"k must be positive for SubjectBalancedSegmentKDataset, got {k}")
-        self.k = int(k)
-        self.seed = int(seed)
-        self.epoch = 0
-        self.fill_with_replacement = bool(fill_with_replacement)
-        self.subject_to_graphs: Dict[str, List[Data]] = defaultdict(list)
-        self.subject_to_label: Dict[str, int] = {}
+# class SubjectBalancedSegmentKDataset(Dataset):
+#     def __init__(
+#         self,
+#         graphs: Sequence[Data],
+#         k: int,
+#         seed: int = 42,
+#         fill_with_replacement: bool = True,
+#         sort_graphs_by: str = "segment_id",
+#     ):
+#         if k is None or int(k) <= 0:
+#             raise ValueError(f"k must be positive for SubjectBalancedSegmentKDataset, got {k}")
+#         self.k = int(k)
+#         self.seed = int(seed)
+#         self.epoch = 0
+#         self.fill_with_replacement = bool(fill_with_replacement)
+#         self.subject_to_graphs: Dict[str, List[Data]] = defaultdict(list)
+#         self.subject_to_label: Dict[str, int] = {}
 
-        for g in graphs:
-            sid = str(g.subject_id)
-            y = int(g.y.view(-1)[0].item())
-            self.subject_to_graphs[sid].append(g)
-            if sid in self.subject_to_label and self.subject_to_label[sid] != y:
-                raise ValueError(f"Subject {sid} has inconsistent labels.")
-            self.subject_to_label[sid] = y
+#         for g in graphs:
+#             sid = str(g.subject_id)
+#             y = int(g.y.view(-1)[0].item())
+#             self.subject_to_graphs[sid].append(g)
+#             if sid in self.subject_to_label and self.subject_to_label[sid] != y:
+#                 raise ValueError(f"Subject {sid} has inconsistent labels.")
+#             self.subject_to_label[sid] = y
 
-        self.subject_ids = sorted(self.subject_to_graphs.keys())
-        self.subject_labels = [self.subject_to_label[sid] for sid in self.subject_ids]
-        if len(self.subject_ids) == 0:
-            raise ValueError("No subjects in SubjectBalancedSegmentKDataset.")
+#         self.subject_ids = sorted(self.subject_to_graphs.keys())
+#         self.subject_labels = [self.subject_to_label[sid] for sid in self.subject_ids]
+#         if len(self.subject_ids) == 0:
+#             raise ValueError("No subjects in SubjectBalancedSegmentKDataset.")
 
-        for sid in self.subject_ids:
-            if sort_graphs_by == "segment_id":
-                self.subject_to_graphs[sid] = sorted(
-                    self.subject_to_graphs[sid],
-                    key=lambda g: (int(getattr(g, "segment_id", 0)), int(getattr(g, "start_sample", 0))),
-                )
-            elif sort_graphs_by == "start_sample":
-                self.subject_to_graphs[sid] = sorted(
-                    self.subject_to_graphs[sid],
-                    key=lambda g: (int(getattr(g, "start_sample", 0)), int(getattr(g, "segment_id", 0))),
-                )
-            else:
-                raise ValueError(f"Unsupported sort_graphs_by={sort_graphs_by!r}")
+#         for sid in self.subject_ids:
+#             if sort_graphs_by == "segment_id":
+#                 self.subject_to_graphs[sid] = sorted(
+#                     self.subject_to_graphs[sid],
+#                     key=lambda g: (int(getattr(g, "segment_id", 0)), int(getattr(g, "start_sample", 0))),
+#                 )
+#             elif sort_graphs_by == "start_sample":
+#                 self.subject_to_graphs[sid] = sorted(
+#                     self.subject_to_graphs[sid],
+#                     key=lambda g: (int(getattr(g, "start_sample", 0)), int(getattr(g, "segment_id", 0))),
+#                 )
+#             else:
+#                 raise ValueError(f"Unsupported sort_graphs_by={sort_graphs_by!r}")
 
-        first_graph = self.subject_to_graphs[self.subject_ids[0]][0]
-        self.num_node_features = int(first_graph.x.shape[-1])
-        self.num_nodes = int(first_graph.x.shape[0])
-        self._indices: List[Tuple[str, int]] = []
-        self.set_epoch(0)
+#         first_graph = self.subject_to_graphs[self.subject_ids[0]][0]
+#         self.num_node_features = int(first_graph.x.shape[-1])
+#         self.num_nodes = int(first_graph.x.shape[0])
+#         self._indices: List[Tuple[str, int]] = []
+#         self.set_epoch(0)
 
-    def set_epoch(self, epoch: int) -> None:
-        self.epoch = int(epoch)
-        indices: List[Tuple[str, int]] = []
-        for sid in self.subject_ids:
-            graphs = self.subject_to_graphs[sid]
-            n = len(graphs)
-            rng = random.Random(self.seed + 1000003 * self.epoch + _stable_int_from_string(sid))
-            if n >= self.k:
-                chosen = rng.sample(range(n), self.k)
-            else:
-                chosen = list(range(n))
-                if self.fill_with_replacement:
-                    chosen += [rng.randrange(n) for _ in range(self.k - n)]
-            for j in chosen:
-                indices.append((sid, int(j)))
-        self._indices = indices
+#     def set_epoch(self, epoch: int) -> None:
+#         self.epoch = int(epoch)
+#         indices: List[Tuple[str, int]] = []
+#         for sid in self.subject_ids:
+#             graphs = self.subject_to_graphs[sid]
+#             n = len(graphs)
+#             rng = random.Random(self.seed + 1000003 * self.epoch + _stable_int_from_string(sid))
+#             if n >= self.k:
+#                 chosen = rng.sample(range(n), self.k)
+#             else:
+#                 chosen = list(range(n))
+#                 if self.fill_with_replacement:
+#                     chosen += [rng.randrange(n) for _ in range(self.k - n)]
+#             for j in chosen:
+#                 indices.append((sid, int(j)))
+#         self._indices = indices
 
-    def __len__(self) -> int:
-        return len(self._indices)
+#     def __len__(self) -> int:
+#         return len(self._indices)
 
-    def __getitem__(self, idx: int) -> Data:
-        sid, j = self._indices[idx]
-        return self.subject_to_graphs[sid][j]
+#     def __getitem__(self, idx: int) -> Data:
+#         sid, j = self._indices[idx]
+#         return self.subject_to_graphs[sid][j]
 
 
 class GraphSegmentDataset(Dataset):
