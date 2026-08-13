@@ -148,46 +148,6 @@ def _maximum_spanning_tree_edges(
 
     return chosen
 
-def _topk_per_node_edges(
-    edge_list: Sequence[Tuple[int, int]],
-    edge_weights: Sequence[float],
-    n_channels: int,
-    topk: int = 4,
-    score_mode: str = "raw",
-) -> set[tuple[int, int]]:
-
-    if topk is None:
-        raise ValueError("topk must be provided for per-node top-k.")
-
-    k = int(topk)
-    if k < 1:
-        raise ValueError(f"topk must be >= 1, got {topk}")
-
-    neighbors = {i: [] for i in range(int(n_channels))}
-
-    for (i, j), w in zip(edge_list, edge_weights):
-        i, j = int(i), int(j)
-        w = float(w)
-
-        if score_mode == "abs":
-            score = abs(w)
-        elif score_mode == "raw":
-            score = w
-        else:
-            raise ValueError("score_mode must be 'raw' or 'abs'.")
-
-        neighbors[i].append((j, score))
-        neighbors[j].append((i, score))
-
-    selected = set()
-
-    for i in range(int(n_channels)):
-        cand = sorted(neighbors[i], key=lambda x: x[1], reverse=True)
-        for j, _ in cand[:k]:
-            a, b = sorted((i, int(j)))
-            selected.add((a, b))
-
-    return selected
     
 def _topk_edges(
     edge_list: Sequence[Tuple[int, int]],
@@ -340,11 +300,8 @@ def apply_edge_filter(
         n_channels=n_channels,
     )
 
-    if method in {"full", "none", "dense", "all"}:
+    if method == "full":
         selected = full_edges
-
-    elif method in {"mst", "maxst", "maximum_spanning_tree"}:
-        selected = _maximum_spanning_tree_edges(edge_list, edge_weights, n_channels=n_channels)
 
     elif method == "fixed":
         selected = fixed_set
@@ -352,35 +309,10 @@ def apply_edge_filter(
     elif method == "topk":
         selected = _topk_edges(edge_list, edge_weights, topk=topk, top_percent=top_percent)
 
-    elif method == "reconnect":
-        mst_set = _maximum_spanning_tree_edges(edge_list, edge_weights, n_channels=n_channels)
-        selected = fixed_set | mst_set
-
     elif method == "combined":
         topk_set = _topk_edges(edge_list, edge_weights, topk=topk, top_percent=top_percent)
         selected = fixed_set | topk_set
 
-    elif method == "overlap":
-        topk_set = _topk_edges(edge_list, edge_weights, topk=topk, top_percent=top_percent)
-        selected = fixed_set & topk_set
-    elif method == "topk_node":
-        selected = _topk_per_node_edges(
-            edge_list,
-            edge_weights,
-            n_channels=n_channels,
-            topk=topk,
-            score_mode="raw",
-        )
-
-    elif method in {"combined_node", "fixed_topk_node"}:
-        topk_set = _topk_per_node_edges(
-            edge_list,
-            edge_weights,
-            n_channels=n_channels,
-            topk=topk,
-            score_mode="raw",
-        )
-        selected = fixed_set | topk_set
     else:
         raise ValueError(f"Unknown filter_method={filter_method!r}")
 
@@ -404,12 +336,11 @@ def build_graphs_from_payload(
     feature_families,
     connectivity_metric=None,
     connectivity_band=None,
-    # edge_source="connectivity",
     zero_diagonal=True,
     symmetrize_adj=True,
     attach_dense_adj=True,
     undirected=True,
-    filter_method="mst",             # "mst", "fixed", "topk", "reconnect", "combined", "overlap", "full"
+    filter_method="fixed",
     topk=4,
     top_percent=None,
     fixed_edges: Optional[EdgeSpec] = None,
@@ -697,82 +628,6 @@ def build_graph_bank_from_specs(
         g.conn_stack = g.adj_bank
         g.conn_stack_names = list(candidate_names)
     return base_graphs, candidate_names
-
-
-# class SubjectBalancedSegmentKDataset(Dataset):
-#     def __init__(
-#         self,
-#         graphs: Sequence[Data],
-#         k: int,
-#         seed: int = 42,
-#         fill_with_replacement: bool = True,
-#         sort_graphs_by: str = "segment_id",
-#     ):
-#         if k is None or int(k) <= 0:
-#             raise ValueError(f"k must be positive for SubjectBalancedSegmentKDataset, got {k}")
-#         self.k = int(k)
-#         self.seed = int(seed)
-#         self.epoch = 0
-#         self.fill_with_replacement = bool(fill_with_replacement)
-#         self.subject_to_graphs: Dict[str, List[Data]] = defaultdict(list)
-#         self.subject_to_label: Dict[str, int] = {}
-
-#         for g in graphs:
-#             sid = str(g.subject_id)
-#             y = int(g.y.view(-1)[0].item())
-#             self.subject_to_graphs[sid].append(g)
-#             if sid in self.subject_to_label and self.subject_to_label[sid] != y:
-#                 raise ValueError(f"Subject {sid} has inconsistent labels.")
-#             self.subject_to_label[sid] = y
-
-#         self.subject_ids = sorted(self.subject_to_graphs.keys())
-#         self.subject_labels = [self.subject_to_label[sid] for sid in self.subject_ids]
-#         if len(self.subject_ids) == 0:
-#             raise ValueError("No subjects in SubjectBalancedSegmentKDataset.")
-
-#         for sid in self.subject_ids:
-#             if sort_graphs_by == "segment_id":
-#                 self.subject_to_graphs[sid] = sorted(
-#                     self.subject_to_graphs[sid],
-#                     key=lambda g: (int(getattr(g, "segment_id", 0)), int(getattr(g, "start_sample", 0))),
-#                 )
-#             elif sort_graphs_by == "start_sample":
-#                 self.subject_to_graphs[sid] = sorted(
-#                     self.subject_to_graphs[sid],
-#                     key=lambda g: (int(getattr(g, "start_sample", 0)), int(getattr(g, "segment_id", 0))),
-#                 )
-#             else:
-#                 raise ValueError(f"Unsupported sort_graphs_by={sort_graphs_by!r}")
-
-#         first_graph = self.subject_to_graphs[self.subject_ids[0]][0]
-#         self.num_node_features = int(first_graph.x.shape[-1])
-#         self.num_nodes = int(first_graph.x.shape[0])
-#         self._indices: List[Tuple[str, int]] = []
-#         self.set_epoch(0)
-
-#     def set_epoch(self, epoch: int) -> None:
-#         self.epoch = int(epoch)
-#         indices: List[Tuple[str, int]] = []
-#         for sid in self.subject_ids:
-#             graphs = self.subject_to_graphs[sid]
-#             n = len(graphs)
-#             rng = random.Random(self.seed + 1000003 * self.epoch + _stable_int_from_string(sid))
-#             if n >= self.k:
-#                 chosen = rng.sample(range(n), self.k)
-#             else:
-#                 chosen = list(range(n))
-#                 if self.fill_with_replacement:
-#                     chosen += [rng.randrange(n) for _ in range(self.k - n)]
-#             for j in chosen:
-#                 indices.append((sid, int(j)))
-#         self._indices = indices
-
-#     def __len__(self) -> int:
-#         return len(self._indices)
-
-#     def __getitem__(self, idx: int) -> Data:
-#         sid, j = self._indices[idx]
-#         return self.subject_to_graphs[sid][j]
 
 
 class GraphSegmentDataset(Dataset):

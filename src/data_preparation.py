@@ -71,8 +71,6 @@ def resolve_project_path(path_value: str | os.PathLike) -> Path:
 
     return (PROJECT_ROOT / path).resolve()
 
-#--------------COMMON FUNCTIONS-----------------
-
 def build_stats_transform(crop_length: int, latency: int, drop_idx):
     return transforms.Compose([
         EegRandomCrop(
@@ -275,8 +273,6 @@ def _ensure_window_dataset(
     return parent[name]
 
 
-
-
 def _truncate_subject_group(grp: h5py.Group, new_size: int) -> None:
     for subpath in ["windows/raw", "windows/qc", "windows/features", "windows/connectivity"]:
         parent = grp[subpath]
@@ -307,11 +303,9 @@ def _create_subject_group(
     connectivity_names: Sequence[str],
     bands: Mapping[str, Tuple[float, float]],
 ) -> h5py.Group:
-    # subject_id = _safe_subject_key(subject_record["subject_id"])
     subject_id = str(subject_record["subject_id"]).replace("/", "__")
     grp = h5f.require_group(f"subjects/{subject_id}")
 
-    # Metadata group
     meta = grp.require_group("metadata")
     meta.attrs["subject_id"] = str(subject_record["subject_id"])
     meta.attrs["label"] = int(subject_record.get("label", subject_record.get("class_id")))
@@ -517,9 +511,6 @@ def build_master_eeg_dataset(
 
     return output_h5_path
 
-
-#--------------AHEAP FUNCTIONS----------------------
-
 def extract_subject_id_from_set_path(file_path: str | os.PathLike) -> str:
     m = re.search(r"(sub-\d+)", str(file_path))
     if m is None:
@@ -547,9 +538,6 @@ def sliding_window_indices(
     window_samples: int,
     step_samples: int,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Return aligned sliding window [start, end) indices.
-    """
     if window_samples <= 0:
         raise ValueError(f"window_samples must be > 0, got {window_samples}")
     if step_samples <= 0:
@@ -568,24 +556,6 @@ def segment_continuous_eeg(
     window_sec: float,
     overlap: float,
 ) -> Tuple[List[np.ndarray], List[int], List[int], List[int]]:
-    """
-    Segment continuous EEG into fixed windows.
-
-    Parameters
-    ----------
-    eeg : np.ndarray
-        Shape [num_channels, num_timepoints].
-    sfreq : float
-        Sampling rate.
-    window_sec : float
-        Window length in seconds.
-    overlap : float
-        Overlap ratio in [0, 1). Example: 0.5 means 50% overlap.
-
-    Returns
-    -------
-    windows, segment_ids, start_samples, end_samples
-    """
     eeg = require_2d_window(eeg)
 
     if not (0.0 <= float(overlap) < 1.0):
@@ -715,10 +685,6 @@ def find_set_files_under_derivatives(
     *,
     pattern: str = "sub-*/eeg/*.set",
 ) -> List[str]:
-    """
-    Find derivative .set files such as:
-      derivatives/sub-001/eeg/sub-001_task-eyesclosed_eeg.set
-    """
     derivatives_root = str(derivatives_root)
     paths = sorted(glob.glob(os.path.join(derivatives_root, pattern)))
     if len(paths) == 0:
@@ -762,9 +728,6 @@ def build_master_eeg_dataset_from_set_files(
         target_sampling_rate=target_sampling_rate,
     )
 
-#--------------CAUEEG FUNCTIONS----------------------
-
-
 def strip_avg_suffix(ch: str) -> str:
     ch = str(ch).strip()
     return ch[:-4] if ch.endswith("-AVG") else ch
@@ -804,8 +767,6 @@ def sample_sliding_window_starts(
 
 
 def normalize_crop_dataset_mode(x: np.ndarray, signal_mean: np.ndarray, signal_std: np.ndarray):
-    # x shape: [C, T]
-    # signal_mean/std from official stats code have broadcastable shape [1, C, 1]
     return ((x - signal_mean.squeeze(0)) / (signal_std.squeeze(0) + 1e-8)).astype(np.float32)
 
 
@@ -820,14 +781,7 @@ def build_sliding_subject_records_from_split(
     latency: int,
     overlap: float,
 ):
-    """
-    Same schema as build_subject_records_from_split(...), but using sliding starts.
 
-    Output subject IDs:
-      train_00001
-      val_00001
-      test_00001
-    """
     records = []
     kept_ids = []
 
@@ -837,7 +791,6 @@ def build_sliding_subject_records_from_split(
         label = int(sample["class_label"])
         age = float(sample.get("age", np.nan))
 
-        # Important: use the same channel dropping method as the random builder.
         signal = np.delete(signal, drop_idx, axis=0)  # [19, T]
 
         starts = sample_sliding_window_starts(
@@ -857,7 +810,6 @@ def build_sliding_subject_records_from_split(
         for i, st in enumerate(starts):
             crop = signal[:, st:st + crop_length].astype(np.float32, copy=False)
 
-            # Important: same normalization as random-crop H5.
             crop = normalize_crop_dataset_mode(crop, signal_mean, signal_std)
 
             windows.append(crop)
@@ -908,7 +860,7 @@ def build_caueeg_sliding_master_compatible(
     dataset_path: str,
     task: str = "dementia",
     file_format: str = "feather",
-    output_h5_path: str = "/mnt/data/anphan/CAUEEG/caueeg_sliding_master_dementia_compatible.h5",
+    output_h5_path: str = "/data/CAUEEG/caueeg_master.h5",
     seed: int = 42,
     crop_length: int = 2000,
     latency: int = 2000,
@@ -1062,10 +1014,6 @@ def load_yaml_config(config_path: Path) -> dict[str, Any]:
 
 
 def parse_name_list(value: str | list[str] | None) -> list[str]:
-    """
-    Convert either a comma-separated CLI string or a YAML list
-    into a clean list of names.
-    """
     if value is None:
         return []
 
@@ -1085,7 +1033,6 @@ def get_cli_or_config(
     key: str,
     default: Any = None,
 ) -> Any:
-    """Use a CLI value when supplied; otherwise use the YAML value."""
     if cli_value is not None:
         return cli_value
 
@@ -1097,7 +1044,6 @@ def validate_registry_names(
     registry: dict,
     argument_name: str,
 ) -> None:
-    """Check that requested feature or connectivity names exist."""
     unknown = sorted(set(names) - set(registry.keys()))
 
     if unknown:
@@ -1115,10 +1061,7 @@ def resolve_output_path(
     overlap: float,
     target_sampling_rate: int,
 ) -> Path:
-    """
-    Use --output when supplied. Otherwise, construct the output
-    location from output_root in the dataset YAML file.
-    """
+
     if output_argument is not None:
         output_path = Path(output_argument).expanduser()
     else:
@@ -1155,9 +1098,7 @@ def _encode_label_value(
     label_value: Any,
     label_to_int: Optional[Mapping[Any, int]] = None,
 ) -> int:
-    """
-    Convert a label into an integer class id.
-    """
+
     if label_to_int is not None:
         if label_value not in label_to_int:
             raise KeyError(f"Label {label_value!r} not found in label_to_int.")
@@ -1179,14 +1120,7 @@ def load_subject_label_map_from_tsv(
     sep: str = "\t",
     label_to_int: Optional[Mapping[Any, int]] = None,
 ) -> Tuple[Dict[str, int], Dict[str, Any]]:
-    """
-    Read subject labels from a TSV/CSV-like table and return:
-      - subject_id -> int class_id
-      - metadata dict containing the original label mapping
 
-    If label_to_int is None and the label column is non-numeric, labels are
-    encoded by sorted unique values.
-    """
     df = pd.read_csv(tsv_path, sep=sep)
 
     if subject_col not in df.columns:
@@ -1197,7 +1131,6 @@ def load_subject_label_map_from_tsv(
     raw_labels = df[label_col].tolist()
 
     if label_to_int is None:
-        # project-specific default for AHEAP
         label_to_int = {"C": 0, "A": 1, "F": 2}
         
     subject_to_label: Dict[str, int] = {}
@@ -1213,21 +1146,12 @@ def load_subject_label_map_from_tsv(
     return subject_to_label, meta
 
 
-
-# -----------------------------------------------------------------------------
-# HDF5 writing helpers
-# -----------------------------------------------------------------------------
-
 def _write_string_dataset(group: h5py.Group, name: str, values: Sequence[str]) -> None:
     arr = np.asarray(list(values), dtype=object)
     if name in group:
         del group[name]
     group.create_dataset(name, data=arr, dtype=h5py.string_dtype(encoding="utf-8"))
 
-
-# -----------------------------------------------------------------------------
-# main functions
-# -----------------------------------------------------------------------------
 
 def build_aheap_from_config(
     dataset_cfg: dict[str, Any],
@@ -1239,7 +1163,6 @@ def build_aheap_from_config(
     target_sampling_rate: int,
     overwrite: bool,
 ) -> None:
-    """Prepare the AHEAP HDF5 file."""
     derivatives_root = resolve_project_path(
         dataset_cfg["derivatives_root"]
     )
@@ -1321,7 +1244,6 @@ def build_caueeg_from_config(
     overwrite: bool,
     seed: int,
 ) -> None:
-    """Prepare the CAUEEG HDF5 file."""
 
     dataset_path = resolve_project_path(
         dataset_cfg["dataset_path"]
