@@ -28,7 +28,7 @@ If you find this work useful, please cite:
 ```bibtex
 @inproceedings{phan2026mlinkx,
   title     = {M-LINKX: Multiview Graph Learning for Brain Cognitive Disease Detection},
-  author    = {An Phan, Yufei Jin, and Xingquan Zhu},
+  author    = {Phan, An and Jin, Yufei and Zhu, Xingquan},
   booktitle = {Proceedings of the 25th International Conference on Machine Learning and Applications (ICMLA'26)},
   year      = {2026}
 }
