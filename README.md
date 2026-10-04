@@ -98,10 +98,11 @@ We evaluate M-LINKX on two public 3-class EEG datasets for dementia classificati
 
 1. **CAUEEG Dataset:**
 * **Classes:** 291 Dementia, 395 Mild Cognitive Impairment (MCI), 436 Healthy Controls (HC).
-* *Note:* The CAUEEG dataset is not redistributed in this repository. To request access to the full CAUEEG dataset, please follow the instructions provided by the dataset authors: (https://github.com/ipis-mjkim/caueeg-dataset)
+* *Note:* The CAUEEG dataset is not redistributed in this repository. To request access to the full CAUEEG dataset, please follow the instructions provided by the dataset authors: https://github.com/ipis-mjkim/caueeg-dataset
 
 2. **AHEAP Dataset:**
 * **Classes:** 36 Alzheimer's Disease (AD), 23 Frontotemporal Dementia (FTD), 29 Healthy Controls (HC).
+* Download here: https://openneuro.org/datasets/ds004504/versions/1.0.8
 
 
 ### Data Preparation & Preprocessing
