@@ -1,4 +1,3 @@
-```markdown
 # M-LINKX: Multiview Graph Learning for Brain Cognitive Disease Detection
 
 <!-- Badges -->
