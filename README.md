@@ -32,30 +32,6 @@ In this paper, we propose **M-LINKX**, a multi-view graph learning framework for
   <em> Overview of the proposed M-LINKX framework. (1) Subject-level EEG recordings are segmented into fixed-length windows. (2) Feature extraction and multi-view FC graph construction. (3) M-LINKX encoder separately encodes node features and adjacency views, applies trainable view weight fusion, and aggregates segment probabilities for final subject classification.</em>
 </p>
 
----
-
-## Repository Structure
-
-```text
-MLINKX/
-├── data/                   # Dataset directory (CAUEEG, AHEAP)
-│   ├── caueeg/             # Raw / Preprocessed CAUEEG files
-│   └── aheap/              # Raw / Preprocessed AHEAP files
-├── src/                    # Source code directory
-│   ├── datasets/           # Data loaders and dataset preprocessing
-│   ├── feature_extraction/ # Bandpower, spectral entropy, and FC graph view construction
-│   ├── models/             # Architecture implementations (M-LINKX, LINKX, GATv2)
-│   └── utils/              # Helper functions (metrics, logging, visualization)
-├── configs/                # Configuration files (hyperparameters, views config)
-│   ├── caueeg_config.yaml
-│   └── aheap_config.yaml
-├── preprocess.py           # Data preprocessing and feature extraction script
-├── train.py                # Main training script (10-fold CV)
-├── evaluate.py             # Inference and evaluation script (Subject-level soft voting)
-├── requirements.txt        # Python package dependencies
-└── README.md               # Project documentation
-
-```
 
 ---
 
@@ -124,8 +100,8 @@ data/
 To extract node features (bandpower, spectral entropy) and construct multi-view FC graphs, run:
 
 ```bash
-python preprocess.py --dataset caueeg --window_length 10
-python preprocess.py --dataset aheap --window_length 4
+python src/data_preparation.py --dataset caueeg --output "data/caueeg/h5/master.h5"
+python src/data_preparation.py --dataset aheap --output "data/aheap/h5/master.h5"
 
 ```
 
@@ -136,14 +112,14 @@ python preprocess.py --dataset aheap --window_length 4
 To train M-LINKX using 10-fold subject-based cross-validation on CAUEEG:
 
 ```bash
-python train.py --config configs/caueeg_config.yaml --device cuda:0
+python train_caueeg.py --out_h5 "data/caueeg/h5/master.h5" --output_root "$OUTPUT_ROOT" --encoder_type mlinkx
 
 ```
 
 To train on AHEAP:
 
 ```bash
-python train.py --config configs/aheap_config.yaml --device cuda:0
+python train_aheap.py --out_h5 "data/aheap/h5/master.h5" --output_root "$OUTPUT_ROOT" --encoder_type mlinkx
 
 ```
 
