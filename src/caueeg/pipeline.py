@@ -639,12 +639,12 @@ class TransformTimeChecker(object):
         return sample
 
 
-def trim_trailing_zeros(a):
-    assert type(a) == np.ndarray
-    trim = 0
-    for i in range(a.shape[-1]):
-        if np.any(a[..., -1 - i] != 0):
-            trim = i
-            break
-    a = a[..., :-trim]
-    return a
+# def trim_trailing_zeros(a):
+#     assert type(a) == np.ndarray
+#     trim = 0
+#     for i in range(a.shape[-1]):
+#         if np.any(a[..., -1 - i] != 0):
+#             trim = i
+#             break
+#     a = a[..., :-trim]
+#     return a

@@ -166,50 +166,52 @@ def save_bank_attention_plots(long_df, summary_df, out_dir, class_names=None):
         plt.tight_layout()
         plt.savefig(os.path.join(out_dir, f"{split}_subject_candidate_attention_heatmap.png"), dpi=300)
         plt.close()
-def summarize_attention_collapse(summary_df, out_dir):
-    os.makedirs(out_dir, exist_ok=True)
 
-    df = summary_df.copy()
+        
+# def summarize_attention_collapse(summary_df, out_dir):
+#     os.makedirs(out_dir, exist_ok=True)
 
-    # Adjustable thresholds.
-    df["collapsed_max080"] = df["max_attention"] >= 0.80
-    df["collapsed_entropy035"] = df["normalized_entropy"] <= 0.35
-    df["collapsed_eff150"] = df["effective_num_candidates"] <= 1.50
+#     df = summary_df.copy()
 
-    rows = []
+#     # Adjustable thresholds.
+#     df["collapsed_max080"] = df["max_attention"] >= 0.80
+#     df["collapsed_entropy035"] = df["normalized_entropy"] <= 0.35
+#     df["collapsed_eff150"] = df["effective_num_candidates"] <= 1.50
 
-    for keys, sdf in df.groupby(["split"]):
-        rows.append({
-            "split": keys,
-            "n_segments": int(len(sdf)),
-            "mean_max_attention": float(sdf["max_attention"].mean()),
-            "median_max_attention": float(sdf["max_attention"].median()),
-            "mean_normalized_entropy": float(sdf["normalized_entropy"].mean()),
-            "median_normalized_entropy": float(sdf["normalized_entropy"].median()),
-            "mean_effective_num_candidates": float(sdf["effective_num_candidates"].mean()),
-            "frac_max_attention_ge_0.80": float(sdf["collapsed_max080"].mean()),
-            "frac_entropy_le_0.35": float(sdf["collapsed_entropy035"].mean()),
-            "frac_effective_k_le_1.50": float(sdf["collapsed_eff150"].mean()),
-        })
+#     rows = []
 
-    split_summary = pd.DataFrame(rows)
-    split_summary.to_csv(os.path.join(out_dir, "attention_collapse_summary_by_split.csv"), index=False)
+#     for keys, sdf in df.groupby(["split"]):
+#         rows.append({
+#             "split": keys,
+#             "n_segments": int(len(sdf)),
+#             "mean_max_attention": float(sdf["max_attention"].mean()),
+#             "median_max_attention": float(sdf["max_attention"].median()),
+#             "mean_normalized_entropy": float(sdf["normalized_entropy"].mean()),
+#             "median_normalized_entropy": float(sdf["normalized_entropy"].median()),
+#             "mean_effective_num_candidates": float(sdf["effective_num_candidates"].mean()),
+#             "frac_max_attention_ge_0.80": float(sdf["collapsed_max080"].mean()),
+#             "frac_entropy_le_0.35": float(sdf["collapsed_entropy035"].mean()),
+#             "frac_effective_k_le_1.50": float(sdf["collapsed_eff150"].mean()),
+#         })
 
-    rows = []
-    for (split, label), sdf in df.groupby(["split", "true_label"]):
-        rows.append({
-            "split": split,
-            "true_label": int(label),
-            "n_segments": int(len(sdf)),
-            "mean_max_attention": float(sdf["max_attention"].mean()),
-            "mean_normalized_entropy": float(sdf["normalized_entropy"].mean()),
-            "mean_effective_num_candidates": float(sdf["effective_num_candidates"].mean()),
-            "frac_max_attention_ge_0.80": float(sdf["collapsed_max080"].mean()),
-            "frac_entropy_le_0.35": float(sdf["collapsed_entropy035"].mean()),
-            "frac_effective_k_le_1.50": float(sdf["collapsed_eff150"].mean()),
-        })
+#     split_summary = pd.DataFrame(rows)
+#     split_summary.to_csv(os.path.join(out_dir, "attention_collapse_summary_by_split.csv"), index=False)
 
-    class_summary = pd.DataFrame(rows)
-    class_summary.to_csv(os.path.join(out_dir, "attention_collapse_summary_by_split_class.csv"), index=False)
+#     rows = []
+#     for (split, label), sdf in df.groupby(["split", "true_label"]):
+#         rows.append({
+#             "split": split,
+#             "true_label": int(label),
+#             "n_segments": int(len(sdf)),
+#             "mean_max_attention": float(sdf["max_attention"].mean()),
+#             "mean_normalized_entropy": float(sdf["normalized_entropy"].mean()),
+#             "mean_effective_num_candidates": float(sdf["effective_num_candidates"].mean()),
+#             "frac_max_attention_ge_0.80": float(sdf["collapsed_max080"].mean()),
+#             "frac_entropy_le_0.35": float(sdf["collapsed_entropy035"].mean()),
+#             "frac_effective_k_le_1.50": float(sdf["collapsed_eff150"].mean()),
+#         })
 
-    return split_summary, class_summary
+#     class_summary = pd.DataFrame(rows)
+#     class_summary.to_csv(os.path.join(out_dir, "attention_collapse_summary_by_split_class.csv"), index=False)
+
+#     return split_summary, class_summary

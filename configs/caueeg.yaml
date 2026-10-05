@@ -14,7 +14,7 @@ target_sampling_rate: 200
 # Default segmentation settings.
 # crop_length is derived as:
 # window_sec * source_sampling_rate
-window_sec: 4.0
+window_sec: 10.0
 overlap: 0.5
 
 # Skip the first 10 seconds of each recording.

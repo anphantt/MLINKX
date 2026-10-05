@@ -12,7 +12,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 
 BANK_ENCODERS = {
-    "linkx_bank",
+    "mlinkx",
     "cnn_bank",
     "gnn_bank",
 }
@@ -403,7 +403,7 @@ class SubjectMILClassifier(nn.Module):
     def _run_graph_encoder(self, batch_dict):
         pyg_batch = batch_dict["pyg_batch"]
 
-        if self.encoder_type in ["linkx_bank"]:
+        if self.encoder_type in ["mlinkx"]:
             out = self.graph_encoder(
                 batch_dict["pyg_batch"],
                 adj_bank=batch_dict.get("adj_bank", None),
@@ -1163,7 +1163,7 @@ class BankAwareSubjectMILClassifier(nn.Module):
         super().__init__()
         self.encoder_type = str(encoder_type).lower()
         self.mil_pool_type = str(mil_pool_type).lower()
-        if self.encoder_type == "linkx_bank":
+        if self.encoder_type == "mlinkx":
             self.graph_encoder = RawNodeBankEdgeMLPEncoder(
                 num_nodes=num_nodes,
                 num_node_features=num_node_features,

@@ -17,7 +17,7 @@ import re
 EdgeSpec = Sequence[Tuple[int | str, int | str]]
 
 BANK_ENCODERS = {
-    "linkx_bank",
+    "mlinkx",
     "cnn_bank",
     "gnn_bank"
 }
@@ -90,11 +90,11 @@ def _iter_existing_subject_ids(h5f: h5py.File, subject_ids: Optional[Sequence[st
     return [sid for sid in wanted if sid in all_ids]
 
 
-def _require_3d_feature_tensor(x: np.ndarray, name: str = "feature tensor") -> np.ndarray:
-    x = np.asarray(x, dtype=np.float32)
-    if x.ndim != 3:
-        raise ValueError(f"{name} must have shape [num_windows, num_channels, num_features], got {x.shape}")
-    return x
+# def _require_3d_feature_tensor(x: np.ndarray, name: str = "feature tensor") -> np.ndarray:
+#     x = np.asarray(x, dtype=np.float32)
+#     if x.ndim != 3:
+#         raise ValueError(f"{name} must have shape [num_windows, num_channels, num_features], got {x.shape}")
+#     return x
 
 
 # =========================================================
@@ -237,15 +237,15 @@ def make_torch_generator(seed: int):
     g.manual_seed(int(seed))
     return g    
 
-def _safe_name(x: str) -> str:
-    x = str(x)
-    x = re.sub(r"[^A-Za-z0-9_.-]+", "_", x)
-    return x.strip("_")
+# def _safe_name(x: str) -> str:
+#     x = str(x)
+#     x = re.sub(r"[^A-Za-z0-9_.-]+", "_", x)
+#     return x.strip("_")
 
-def _as_float_cpu_tensor(x):
-    if torch.is_tensor(x):
-        return x.detach().cpu().float()
-    return torch.tensor(x, dtype=torch.float32)
+# def _as_float_cpu_tensor(x):
+#     if torch.is_tensor(x):
+#         return x.detach().cpu().float()
+#     return torch.tensor(x, dtype=torch.float32)
 
 def is_bank_encoder(encoder_type: str) -> bool:
     return str(encoder_type).lower() in BANK_ENCODERS

@@ -95,27 +95,6 @@ def feature_relative_band_power(window: np.ndarray, sfreq: float, bands: Mapping
     }
 
 
-
-def feature_absolute_band_power(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[float, float]]) -> Tuple[np.ndarray, Dict[str, Any]]:
-    freqs, psd = _welch_psd(window, sfreq)
-    values, band_names = _band_power_from_psd(freqs, psd, bands, log_scale=False)
-    return values, {
-        "feature_names": [f"abs_power_{b}" for b in band_names],
-        "description": "Absolute band power per channel.",
-    }
-
-
-
-def feature_log_band_power(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[float, float]]) -> Tuple[np.ndarray, Dict[str, Any]]:
-    freqs, psd = _welch_psd(window, sfreq)
-    values, band_names = _band_power_from_psd(freqs, psd, bands, log_scale=True)
-    return values, {
-        "feature_names": [f"log_power_{b}" for b in band_names],
-        "description": "Log-transformed band power per channel.",
-    }
-
-
-
 def feature_hjorth(window: np.ndarray, sfreq: float, bands: Mapping[str, Tuple[float, float]]) -> Tuple[np.ndarray, Dict[str, Any]]:
     x = require_2d_window(window)
     dx = np.diff(x, axis=-1)

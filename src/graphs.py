@@ -148,6 +148,47 @@ def _maximum_spanning_tree_edges(
 
     return chosen
 
+def _topk_per_node_edges(
+    edge_list: Sequence[Tuple[int, int]],
+    edge_weights: Sequence[float],
+    n_channels: int,
+    topk: int = 4,
+    score_mode: str = "raw",
+) -> set[tuple[int, int]]:
+
+    if topk is None:
+        raise ValueError("topk must be provided for per-node top-k.")
+
+    k = int(topk)
+    if k < 1:
+        raise ValueError(f"topk must be >= 1, got {topk}")
+
+    neighbors = {i: [] for i in range(int(n_channels))}
+
+    for (i, j), w in zip(edge_list, edge_weights):
+        i, j = int(i), int(j)
+        w = float(w)
+
+        if score_mode == "abs":
+            score = abs(w)
+        elif score_mode == "raw":
+            score = w
+        else:
+            raise ValueError("score_mode must be 'raw' or 'abs'.")
+
+        neighbors[i].append((j, score))
+        neighbors[j].append((i, score))
+
+    selected = set()
+
+    for i in range(int(n_channels)):
+        cand = sorted(neighbors[i], key=lambda x: x[1], reverse=True)
+        for j, _ in cand[:k]:
+            a, b = sorted((i, int(j)))
+            selected.add((a, b))
+
+    return selected
+    
     
 def _topk_edges(
     edge_list: Sequence[Tuple[int, int]],
@@ -300,10 +341,10 @@ def apply_edge_filter(
         n_channels=n_channels,
     )
 
-    if method == "full":
+    if method == "full": #complete
         selected = full_edges
 
-    elif method == "fixed":
+    elif method == "fixed": #domain
         selected = fixed_set
 
     elif method == "topk":
@@ -312,6 +353,28 @@ def apply_edge_filter(
     elif method == "combined":
         topk_set = _topk_edges(edge_list, edge_weights, topk=topk, top_percent=top_percent)
         selected = fixed_set | topk_set
+
+    elif method == "per_node_topk":
+        selected = _topk_per_node_edges(
+            edge_list,
+            edge_weights,
+            n_channels=n_channels,
+            topk=topk,
+            score_mode="raw",
+        )
+
+    elif method == "combined_node":
+        topk_set = _topk_per_node_edges(
+            edge_list,
+            edge_weights,
+            n_channels=n_channels,
+            topk=topk,
+            score_mode="raw",
+        )
+        selected = fixed_set | topk_set
+
+    elif method == "mst":
+        selected = _maximum_spanning_tree_edges(edge_list, edge_weights, n_channels=n_channels)
 
     else:
         raise ValueError(f"Unknown filter_method={filter_method!r}")

@@ -19,8 +19,7 @@ label_to_int:
 source_sampling_rate: 500
 target_sampling_rate: 500
 
-# Default segmentation settings.
-# Command-line arguments can override these values.
+# Default segmentation settings
 window_sec: 4.0
 overlap: 0.5
 
@@ -34,10 +33,8 @@ connectivity_metrics:
   - coherence
   - wpli
 
-# Set this to a mapping if channel names must be standardized.
 rename_channels: null
 overwrite: false
 seed: 42
 
-# Used when --output is not provided.
 output_root: data/aheap/h5

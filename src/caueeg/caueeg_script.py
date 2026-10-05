@@ -125,35 +125,35 @@ def load_caueeg_config(dataset_path: str):
     return config
 
 
-def load_caueeg_full_dataset(dataset_path: str, load_event: bool = True, file_format: str = "edf", transform=None):
-    """Load the whole CAUEEG dataset as a PyTorch dataset instance without considering the target task.
+# def load_caueeg_full_dataset(dataset_path: str, load_event: bool = True, file_format: str = "edf", transform=None):
+#     """Load the whole CAUEEG dataset as a PyTorch dataset instance without considering the target task.
 
-    Args:
-        dataset_path (str): The file path where the dataset files are located.
-        load_event (bool): Whether to load the event information occurred during recording EEG signals.
-        file_format (str): Determines which file format is used among of EDF, PyArrow Feather, and NumPy memmap.
-        transform (callable): Preprocessing process to apply during loading signals.
+#     Args:
+#         dataset_path (str): The file path where the dataset files are located.
+#         load_event (bool): Whether to load the event information occurred during recording EEG signals.
+#         file_format (str): Determines which file format is used among of EDF, PyArrow Feather, and NumPy memmap.
+#         transform (callable): Preprocessing process to apply during loading signals.
 
-    Returns:
-        The PyTorch dataset instance for the entire CAUEEG dataset.
-    """
-    try:
-        with open(os.path.join(dataset_path, "annotation.json"), "r") as json_file:
-            annotation = json.load(json_file)
-    except FileNotFoundError as e:
-        print(
-            f"ERROR: load_caueeg_full(dataset_path) encounters an error of {e}. "
-            f"Make sure the dataset path is correct."
-        )
-        raise
+#     Returns:
+#         The PyTorch dataset instance for the entire CAUEEG dataset.
+#     """
+#     try:
+#         with open(os.path.join(dataset_path, "annotation.json"), "r") as json_file:
+#             annotation = json.load(json_file)
+#     except FileNotFoundError as e:
+#         print(
+#             f"ERROR: load_caueeg_full(dataset_path) encounters an error of {e}. "
+#             f"Make sure the dataset path is correct."
+#         )
+#         raise
 
-    eeg_dataset = CauEegDataset(
-        dataset_path, annotation["data"], load_event=load_event, file_format=file_format, transform=transform
-    )
+#     eeg_dataset = CauEegDataset(
+#         dataset_path, annotation["data"], load_event=load_event, file_format=file_format, transform=transform
+#     )
 
-    config = {k: v for k, v in annotation.items() if k != "data"}
+#     config = {k: v for k, v in annotation.items() if k != "data"}
 
-    return config, eeg_dataset
+#     return config, eeg_dataset
 
 
 def load_caueeg_task_datasets(
@@ -706,62 +706,62 @@ def make_dataloader(config, train_dataset, val_dataset, test_dataset, multicrop_
     return train_loader, val_loader, test_loader, multicrop_test_loader
 
 
-def build_dataset_for_train(config, verbose=False):
-    dataset_path = config["dataset_path"]
-    if "cwd" in config:
-        dataset_path = os.path.join(config["cwd"], dataset_path)
+# def build_dataset_for_train(config, verbose=False):
+#     dataset_path = config["dataset_path"]
+#     if "cwd" in config:
+#         dataset_path = os.path.join(config["cwd"], dataset_path)
 
-    config_dataset = load_caueeg_config(dataset_path)
-    config.update(**config_dataset)
+#     config_dataset = load_caueeg_config(dataset_path)
+#     config.update(**config_dataset)
 
-    transform, transform_multicrop = compose_transforms(config, verbose=verbose)
-    config["transform"] = transform
-    config["transform_multicrop"] = transform_multicrop
+#     transform, transform_multicrop = compose_transforms(config, verbose=verbose)
+#     config["transform"] = transform
+#     config["transform_multicrop"] = transform_multicrop
 
-    config_task, train_dataset, val_dataset, test_dataset = load_caueeg_task_datasets(
-        dataset_path=dataset_path,
-        task=config["task"],
-        load_event=config["load_event"],
-        file_format=config["file_format"],
-        transform=transform,
-        verbose=verbose,
-    )
-    config.update(**config_task)
+#     config_task, train_dataset, val_dataset, test_dataset = load_caueeg_task_datasets(
+#         dataset_path=dataset_path,
+#         task=config["task"],
+#         load_event=config["load_event"],
+#         file_format=config["file_format"],
+#         transform=transform,
+#         verbose=verbose,
+#     )
+#     config.update(**config_task)
 
-    _, multicrop_test_dataset = load_caueeg_task_split(
-        dataset_path=dataset_path,
-        task=config["task"],
-        split="test",
-        load_event=config["load_event"],
-        file_format=config["file_format"],
-        transform=transform_multicrop,
-        verbose=verbose,
-    )
+#     _, multicrop_test_dataset = load_caueeg_task_split(
+#         dataset_path=dataset_path,
+#         task=config["task"],
+#         split="test",
+#         load_event=config["load_event"],
+#         file_format=config["file_format"],
+#         transform=transform_multicrop,
+#         verbose=verbose,
+#     )
 
-    train_loader, val_loader, test_loader, multicrop_test_loader = make_dataloader(
-        config, train_dataset, val_dataset, test_dataset, multicrop_test_dataset, verbose=False
-    )
+#     train_loader, val_loader, test_loader, multicrop_test_loader = make_dataloader(
+#         config, train_dataset, val_dataset, test_dataset, multicrop_test_dataset, verbose=False
+#     )
 
-    preprocess_train, preprocess_test = compose_preprocess(config, train_loader, verbose=verbose)
-    config["preprocess_train"] = preprocess_train
-    config["preprocess_test"] = preprocess_test
-    config["in_channels"] = preprocess_train(next(iter(train_loader)))["signal"].shape[1]
-    config["out_dims"] = len(config["class_label_to_name"])
+#     preprocess_train, preprocess_test = compose_preprocess(config, train_loader, verbose=verbose)
+#     config["preprocess_train"] = preprocess_train
+#     config["preprocess_test"] = preprocess_test
+#     config["in_channels"] = preprocess_train(next(iter(train_loader)))["signal"].shape[1]
+#     config["out_dims"] = len(config["class_label_to_name"])
 
-    if verbose:
-        for i_batch, sample_batched in enumerate(train_loader):
-            # preprocessing includes to-device operation
-            preprocess_train(sample_batched)
+#     if verbose:
+#         for i_batch, sample_batched in enumerate(train_loader):
+#             # preprocessing includes to-device operation
+#             preprocess_train(sample_batched)
 
-            print(
-                i_batch,
-                sample_batched["signal"].shape,
-                sample_batched["age"].shape,
-                sample_batched["class_label"].shape,
-            )
+#             print(
+#                 i_batch,
+#                 sample_batched["signal"].shape,
+#                 sample_batched["age"].shape,
+#                 sample_batched["class_label"].shape,
+#             )
 
-            if i_batch > 3:
-                break
-        print("\n" + "-" * 100 + "\n")
+#             if i_batch > 3:
+#                 break
+#         print("\n" + "-" * 100 + "\n")
 
-    return train_loader, val_loader, test_loader, multicrop_test_loader
+#     return train_loader, val_loader, test_loader, multicrop_test_loader
